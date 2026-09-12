@@ -1,0 +1,1 @@
+print("LinguaAI is starting...")
