@@ -3,6 +3,9 @@ import os
 from dotenv import load_dotenv
 import telebot
 
+from services.translation import translate_text
+
+
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
@@ -22,9 +25,14 @@ def start(message):
 def handle_message(message):
     user_text = message.text
 
+    translated_text = translate_text(
+        user_text,
+        "Persian"
+    )
+
     bot.reply_to(
         message,
-        f"📝 متن دریافت شد:\n\n{user_text}"
+        translate_text
     )
 
 
