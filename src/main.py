@@ -18,6 +18,16 @@ def start(message):
     )
 
 
+@bot.message_handler(func=lambda message: True)
+def handle_message(message):
+    user_text = message.text
+
+    bot.reply_to(
+        message,
+        f"📝 متن دریافت شد:\n\n{user_text}"
+    )
+
+
 def main():
     print("LinguaAI is running...")
     bot.infinity_polling()
