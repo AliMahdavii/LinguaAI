@@ -85,14 +85,23 @@ def handle_message(message):
         return
 
     try:
-        translated_text = translator.translate(
+        result = translator.translate(
             user_text,
             target_language
         )
 
+        response = f"🇮🇷 Translation:\n{result.translation}"
+
+        if result.expression:
+            response += (
+                f"\n\n💡 Expression:\n"
+                f'"{result.expression}"\n'
+                f"{result.expression_meaning}"
+            )
+
         bot.reply_to(
             message,
-            translated_text
+            response
         )
 
     except Exception as error:
