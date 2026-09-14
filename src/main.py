@@ -90,7 +90,11 @@ def handle_message(message):
             target_language
         )
 
-        response = f"🇮🇷 Translation:\n{result.translation}"
+        response = (
+            f"🌐 Source: {result.source_language}\n\n"
+            f"🇮🇷 Translation:\n"
+            f"{result.translation}"
+        )
 
         if result.expression:
             response += (
@@ -104,12 +108,21 @@ def handle_message(message):
             response
         )
 
-    except Exception as error:
+    except ValueError as error:
         print(f"Translation error: {error}")
 
         bot.reply_to(
             message,
-            "❌ Something went wrong while translating your text."
+            "⚠️ I couldn't process the translation correctly. "
+            "Please try again."
+        )
+
+    except Exception as error:
+        print(f"Unexpected error: {error}")
+
+        bot.reply_to(
+            message,
+            "❌ Something went wrong. Please try again later."
         )
 
 

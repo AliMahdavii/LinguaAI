@@ -49,7 +49,23 @@ Text:
 
         response = self.gemini.generate(prompt)
 
-        data = json.loads(response)
+        try:
+            data = json.loads(response)
+
+        except json.JSONDecodeError as error:
+            raise ValueError(
+                "Gemini returned invalid JSON."
+            ) from error
+
+        if "source_language" not in data:
+            raise ValueError(
+                "Missing source_language in Gemini response."
+            )
+
+        if "translation" not in data:
+            raise ValueError(
+                "Missing translation in Gemini response."
+            )
 
         return TranslationResult(
             source_language=data["source_language"],
