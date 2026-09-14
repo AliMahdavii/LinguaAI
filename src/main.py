@@ -5,6 +5,7 @@ from telebot import types
 from dotenv import load_dotenv
 
 from src.services.translator_service import TranslatorService
+from src.database import create_database, save_language, get_language
 
 
 load_dotenv()
@@ -18,8 +19,7 @@ if not BOT_TOKEN:
 bot = telebot.TeleBot(BOT_TOKEN)
 translator = TranslatorService()
 
-
-user_languages = {}
+create_database()
 
 
 LANGUAGES = {
@@ -55,7 +55,10 @@ def start(message):
 def select_language(call):
     language = call.data.split(":", 1)[1]
 
-    user_languages[call.from_user.id] = language
+    save_language(
+        call.from_user.id,
+        language
+    )
 
     bot.answer_callback_query(call.id)
 
@@ -70,7 +73,9 @@ def select_language(call):
 def handle_message(message):
     user_text = message.text
 
-    target_language = user_languages.get(message.from_user.id)
+    target_language = get_language(
+        message.from_user.id
+    )
 
     if not target_language:
         bot.reply_to(
