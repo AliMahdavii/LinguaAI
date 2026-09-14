@@ -20,6 +20,7 @@ bot = telebot.TeleBot(BOT_TOKEN)
 
 translator = TranslatorService()
 
+last_bot_messages = {}
 
 create_database()
 
@@ -71,7 +72,6 @@ def select_language(call):
     )
 
 
-
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     user_text = message.text
@@ -95,7 +95,7 @@ def handle_message(message):
 
         response = (
             f"🌐 Source: {result.source_language}\n\n"
-            f"🇮🇷 Translation:\n"
+            f"🔤 Translation:\n"
             f"{result.translation}"
         )
 
@@ -106,26 +106,46 @@ def handle_message(message):
                 f"{result.expression_meaning}"
             )
 
-        bot.reply_to(
+        # Delete previous bot response
+        previous_message_id = last_bot_messages.get(
+            message.from_user.id
+        )
+
+        if previous_message_id:
+            try:
+                bot.delete_message(
+                    message.chat.id,
+                    previous_message_id
+                )
+            except Exception as error:
+                print(f"Could not delete previous message: {error}")
+
+        # Send new translation
+        sent_message = bot.reply_to(
             message,
             response
         )
 
-    except ValueError as error:
+        # Save new bot message
+        last_bot_messages[message.from_user.id] = (
+            sent_message.message_id
+        )
+
+        # Delete user's message
+        try:
+            bot.delete_message(
+                message.chat.id,
+                message.message_id
+            )
+        except Exception as error:
+            print(f"Could not delete user message: {error}")
+
+    except Exception as error:
         print(f"Translation error: {error}")
 
         bot.reply_to(
             message,
-            "⚠️ I couldn't process the translation correctly. "
-            "Please try again."
-        )
-
-    except Exception as error:
-        print(f"Unexpected error: {error}")
-
-        bot.reply_to(
-            message,
-            "❌ Something went wrong. Please try again later."
+            "❌ Something went wrong while translating your text."
         )
 
 
