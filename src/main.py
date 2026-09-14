@@ -34,8 +34,7 @@ LANGUAGES = {
 }
 
 
-@bot.message_handler(commands=["start"])
-def start(message):
+def language_keyboard():
     keyboard = types.InlineKeyboardMarkup(row_width=2)
 
     for language, label in LANGUAGES.items():
@@ -46,15 +45,58 @@ def start(message):
             )
         )
 
-    bot.send_message(
-        message.chat.id,
-        "👋 Welcome to LinguaAI!\n\n"
-        "Choose your target language:",
-        reply_markup=keyboard
+    return keyboard
+
+
+@bot.message_handler(commands=["start"])
+def start(message):
+    target_language = get_language(
+        message.from_user.id
+    )
+
+    if target_language:
+        bot.send_message(
+            message.chat.id,
+            f"👋 Welcome back to LinguaAI!\n\n"
+            f"🌐 Target language: {LANGUAGES[target_language]}",
+            reply_markup=types.InlineKeyboardMarkup(
+                keyboard=[
+                    [
+                        types.InlineKeyboardButton(
+                            "🔄 Change Language",
+                            callback_data="change_language"
+                        )
+                    ]
+                ]
+            )
+        )
+
+    else:
+        bot.send_message(
+            message.chat.id,
+            "👋 Welcome to LinguaAI!\n\n"
+            "Choose your target language:",
+            reply_markup=language_keyboard()
+        )
+
+
+@bot.callback_query_handler(
+    func=lambda call: call.data == "change_language"
+)
+def change_language(call):
+    bot.answer_callback_query(call.id)
+
+    bot.edit_message_text(
+        "🌐 Choose your target language:",
+        call.message.chat.id,
+        call.message.message_id,
+        reply_markup=language_keyboard()
     )
 
 
-@bot.callback_query_handler(func=lambda call: call.data.startswith("lang:"))
+@bot.callback_query_handler(
+    func=lambda call: call.data.startswith("lang:")
+)
 def select_language(call):
     language = call.data.split(":", 1)[1]
 
@@ -63,12 +105,16 @@ def select_language(call):
         language
     )
 
-    bot.answer_callback_query(call.id)
+    bot.answer_callback_query(
+        call.id,
+        "Language updated!"
+    )
 
-    bot.send_message(
+    bot.edit_message_text(
+        f"✅ Target language: {LANGUAGES[language]}\n\n"
+        "Send me a text to translate.",
         call.message.chat.id,
-        f"✅ Target language set to {language}.\n\n"
-        "Now send me a text to translate."
+        call.message.message_id
     )
 
 
