@@ -1,4 +1,5 @@
 import os
+import time
 
 from dotenv import load_dotenv
 from google import genai
@@ -18,9 +19,35 @@ class GeminiService:
         self.model = "gemini-3.6-flash"
 
     def generate(self, prompt: str) -> str:
-        response = self.client.models.generate_content(
-            model=self.model,
-            contents=prompt
-        )
 
-        return response.text
+        max_retries = 3
+
+        for attempt in range(max_retries):
+            try:
+                response = self.client.models.generate_content(
+                    model=self.model,
+                    contents=prompt
+                )
+
+                return response.text
+
+            except Exception as error:
+
+                error_message = str(error)
+
+                if "503" not in error_message:
+                    raise
+
+                if attempt == max_retries - 1:
+                    raise
+
+                wait_time = 2 ** attempt
+
+                print(
+                    f"Gemini unavailable. "
+                    f"Retrying in {wait_time} seconds..."
+                )
+
+                time.sleep(wait_time)
+
+        raise RuntimeError("Gemini request failed.")
