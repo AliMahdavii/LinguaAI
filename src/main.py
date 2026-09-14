@@ -6,6 +6,7 @@ from dotenv import load_dotenv
 
 from src.services.translator_service import TranslatorService
 from src.database import create_database, save_language, get_language
+from src.services.grammar_service import GrammarService
 
 
 load_dotenv()
@@ -17,7 +18,10 @@ if not BOT_TOKEN:
 
 
 bot = telebot.TeleBot(BOT_TOKEN)
+
 translator = TranslatorService()
+
+grammar_checker = GrammarService()
 
 create_database()
 
@@ -67,6 +71,40 @@ def select_language(call):
         f"✅ Target language set to {language}.\n\n"
         "Now send me a text to translate."
     )
+
+
+grammar_mode = set()
+
+
+@bot.message_handler(commands=["grammar"])
+def grammar_command(message):
+    grammar_mode.add(message.from_user.id)
+
+    bot.reply_to(
+        message,
+        "✍️ Send me a sentence and I'll check its grammar."
+    )
+
+    if message.from_user.id in grammar_mode:
+        try:
+            result = grammar_checker.check(message.text)
+
+            bot.reply_to(
+                message,
+                result
+            )
+
+        except Exception as error:
+            print(f"Grammar error: {error}")
+
+            bot.reply_to(
+                message,
+                "❌ Something went wrong while checking grammar."
+            )
+
+        grammar_mode.remove(message.from_user.id)
+
+        return
 
 
 @bot.message_handler(func=lambda message: True)
