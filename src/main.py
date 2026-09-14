@@ -1,23 +1,29 @@
 import os
 
-from dotenv import load_dotenv
 import telebot
+from dotenv import load_dotenv
 
-from services.translation import translate_text
+from src.services.translator_service import TranslatorService
 
 
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
+if not BOT_TOKEN:
+    raise ValueError("BOT_TOKEN is not set.")
+
+
 bot = telebot.TeleBot(BOT_TOKEN)
+translator = TranslatorService()
 
 
 @bot.message_handler(commands=["start"])
 def start(message):
     bot.reply_to(
         message,
-        "Hi"
+        "👋 Welcome to LinguaAI!\n\n"
+        "Send me a text and I'll translate it for you."
     )
 
 
@@ -25,14 +31,14 @@ def start(message):
 def handle_message(message):
     user_text = message.text
 
-    translated_text = translate_text(
+    translated_text = translator.translate(
         user_text,
         "Persian"
     )
 
     bot.reply_to(
         message,
-        translate_text
+        translated_text
     )
 
 
