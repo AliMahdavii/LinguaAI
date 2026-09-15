@@ -164,7 +164,6 @@ def handle_message(message):
 
     user_id = message.from_user.id
     chat_id = message.chat.id
-    user_text = message.text
 
     target_language = get_language(user_id)
 
@@ -174,6 +173,24 @@ def handle_message(message):
             "Please use /start first and choose a target language."
         )
         return
+
+    # Determine what should be translated
+    if message.reply_to_message:
+
+        replied_message = message.reply_to_message
+
+        if not replied_message.text:
+            bot.reply_to(
+                message,
+                "❌ I can only translate text messages for now."
+            )
+            return
+
+        user_text = replied_message.text
+
+    else:
+
+        user_text = message.text
 
     # Save user message ID
     user_messages.setdefault(user_id, []).append(
@@ -207,7 +224,7 @@ def handle_message(message):
                 f"{result.expression_meaning}"
             )
 
-        # Delete old bot translation
+        # Delete previous bot translation
         previous_message_id = last_bot_messages.get(user_id)
 
         if previous_message_id:
@@ -223,14 +240,16 @@ def handle_message(message):
                     f"Could not delete previous translation: {error}"
                 )
 
-        # Delete translating message
+        # Delete "Translating..." message
         try:
+
             bot.delete_message(
                 chat_id,
                 translating_message.message_id
             )
 
         except Exception as error:
+
             print(
                 f"Could not delete translating message: {error}"
             )
@@ -242,7 +261,9 @@ def handle_message(message):
             reply_markup=translation_keyboard()
         )
 
-        last_bot_messages[user_id] = sent_message.message_id
+        last_bot_messages[user_id] = (
+            sent_message.message_id
+        )
 
         user_messages[user_id].append(
             sent_message.message_id
@@ -250,12 +271,14 @@ def handle_message(message):
 
         # Delete user's message
         try:
+
             bot.delete_message(
                 chat_id,
                 message.message_id
             )
 
         except Exception as error:
+
             print(
                 f"Could not delete user message: {error}"
             )
@@ -265,10 +288,12 @@ def handle_message(message):
         print(f"Translation error: {error}")
 
         try:
+
             bot.delete_message(
                 chat_id,
                 translating_message.message_id
             )
+
         except Exception:
             pass
 
