@@ -2,6 +2,9 @@
 
 **An AI-powered Telegram bot for natural and contextual text translation.**
 
+🚀 **[Try the Bot on Telegram](https://t.me/LinguaAI_AliBot)**
+
+
 LinguaAI is a Python-based Telegram bot that uses Large Language Models to translate text naturally while preserving **meaning, context, expressions, and tone**.
 
 > 🌐 Break language barriers with AI.
