@@ -10,6 +10,7 @@ from src.database import create_database, save_language, get_language
 
 load_dotenv()
 
+
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 
 if not BOT_TOKEN:
@@ -20,11 +21,12 @@ bot = telebot.TeleBot(BOT_TOKEN)
 
 translator = TranslatorService()
 
-last_bot_messages = {}
-
-user_messages = {}
-
 create_database()
+
+
+# Store the latest messages for each user
+# [user_message_id, bot_message_id]
+user_messages = {}
 
 
 LANGUAGES = {
@@ -50,7 +52,7 @@ def language_keyboard():
     return keyboard
 
 
-def translation_keyboard():
+def change_language_keyboard():
     keyboard = types.InlineKeyboardMarkup()
 
     keyboard.add(
@@ -63,13 +65,7 @@ def translation_keyboard():
     return keyboard
 
 
-@bot.message_handler(commands=["start"])
-def start(message):
-
-    chat_id = message.chat.id
-    user_id = message.from_user.id
-
-    # Delete previous messages
+def delete_previous_messages(chat_id, user_id):
     previous_messages = user_messages.get(user_id, [])
 
     for message_id in previous_messages:
@@ -78,23 +74,30 @@ def start(message):
                 chat_id,
                 message_id
             )
+
         except Exception as error:
-            print(f"Could not delete message: {error}")
+            print(
+                f"Could not delete previous message: {error}"
+            )
 
     user_messages[user_id] = []
+
+
+@bot.message_handler(commands=["start"])
+def start(message):
+
+    chat_id = message.chat.id
+    user_id = message.from_user.id
+
+    # Delete previous user/bot messages
+    delete_previous_messages(
+        chat_id,
+        user_id
+    )
 
     target_language = get_language(user_id)
 
     if target_language:
-
-        keyboard = types.InlineKeyboardMarkup()
-
-        keyboard.add(
-            types.InlineKeyboardButton(
-                "⚙️ Change Language",
-                callback_data="change_language"
-            )
-        )
 
         sent_message = bot.send_message(
             chat_id,
@@ -102,7 +105,7 @@ def start(message):
             f"🌐 Target language: "
             f"{LANGUAGES[target_language]}\n\n"
             f"Send me a text to translate.",
-            reply_markup=keyboard
+            reply_markup=change_language_keyboard()
         )
 
     else:
@@ -114,15 +117,16 @@ def start(message):
             reply_markup=language_keyboard()
         )
 
-    user_messages[user_id].append(
+    user_messages[user_id] = [
         sent_message.message_id
-    )
+    ]
 
 
 @bot.callback_query_handler(
     func=lambda call: call.data == "change_language"
 )
 def change_language(call):
+
     bot.answer_callback_query(call.id)
 
     bot.edit_message_text(
@@ -151,15 +155,41 @@ def select_language(call):
     )
 
     bot.edit_message_text(
-        f"✅ Target language: {LANGUAGES[language]}\n\n"
+        f"👋 Welcome back to LinguaAI!\n\n"
+        f"🌐 Target language: {LANGUAGES[language]}\n\n"
         "Send me a text to translate.",
         call.message.chat.id,
         call.message.message_id,
-        reply_markup=translation_keyboard()
+        reply_markup=change_language_keyboard()
     )
 
 
-@bot.message_handler(func=lambda message: True)
+@bot.message_handler(
+    content_types=[
+        "photo",
+        "audio",
+        "video",
+        "voice",
+        "document",
+        "sticker",
+        "animation",
+        "location",
+        "contact",
+        "poll",
+        "dice"
+    ]
+)
+def handle_non_text(message):
+
+    bot.reply_to(
+        message,
+        "❌ I can only translate text messages for now."
+    )
+
+
+@bot.message_handler(
+    content_types=["text"]
+)
 def handle_message(message):
 
     user_id = message.from_user.id
@@ -168,10 +198,12 @@ def handle_message(message):
     target_language = get_language(user_id)
 
     if not target_language:
+
         bot.reply_to(
             message,
             "Please use /start first and choose a target language."
         )
+
         return
 
     # Determine what should be translated
@@ -180,10 +212,12 @@ def handle_message(message):
         replied_message = message.reply_to_message
 
         if not replied_message.text:
+
             bot.reply_to(
                 message,
                 "❌ I can only translate text messages for now."
             )
+
             return
 
         user_text = replied_message.text
@@ -192,12 +226,13 @@ def handle_message(message):
 
         user_text = message.text
 
-    # Save user message ID
-    user_messages.setdefault(user_id, []).append(
-        message.message_id
+    # Delete previous user + bot messages
+    delete_previous_messages(
+        chat_id,
+        user_id
     )
 
-    # Show translating status
+    # Show translation status
     translating_message = bot.send_message(
         chat_id,
         "⏳ Translating..."
@@ -224,23 +259,7 @@ def handle_message(message):
                 f"{result.expression_meaning}"
             )
 
-        # Delete previous bot translation
-        previous_message_id = last_bot_messages.get(user_id)
-
-        if previous_message_id:
-
-            try:
-                bot.delete_message(
-                    chat_id,
-                    previous_message_id
-                )
-
-            except Exception as error:
-                print(
-                    f"Could not delete previous translation: {error}"
-                )
-
-        # Delete "Translating..." message
+        # Delete translating message
         try:
 
             bot.delete_message(
@@ -257,35 +276,20 @@ def handle_message(message):
         # Send translation
         sent_message = bot.send_message(
             chat_id,
-            response,
-            reply_markup=translation_keyboard()
+            response
         )
 
-        last_bot_messages[user_id] = (
+        # Keep both user message and bot translation
+        user_messages[user_id] = [
+            message.message_id,
             sent_message.message_id
-        )
-
-        user_messages[user_id].append(
-            sent_message.message_id
-        )
-
-        # Delete user's message
-        try:
-
-            bot.delete_message(
-                chat_id,
-                message.message_id
-            )
-
-        except Exception as error:
-
-            print(
-                f"Could not delete user message: {error}"
-            )
+        ]
 
     except Exception as error:
 
-        print(f"Translation error: {error}")
+        print(
+            f"Translation error: {error}"
+        )
 
         try:
 
@@ -304,7 +308,9 @@ def handle_message(message):
 
 
 def main():
+
     print("LinguaAI is running...")
+
     bot.infinity_polling()
 
 
