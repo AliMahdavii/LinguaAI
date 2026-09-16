@@ -75,13 +75,13 @@ LinguaAI/
 │
 ├── src/
 │   ├── services/
-│   │   ├── ai.py
 │   │   ├── gemini_service.py
 │   │   └── translator_service.py
 │   │
-│   └── database.py
-│
-├── main.py
+│   |── database.py
+|   |── main.py
+│   └── models.py
+|
 ├── requirements.txt
 ├── .gitignore
 └── .env
