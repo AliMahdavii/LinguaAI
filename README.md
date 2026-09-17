@@ -63,6 +63,7 @@ The project uses a **service-based architecture**, keeping Telegram handling and
 ## 🛠️ Tech Stack
 
 * 🐍 Python
+* 📦 UV
 * 🤖 pyTelegramBotAPI
 * 🧠 LLM APIs
 * 🗄️ SQLite
@@ -85,7 +86,9 @@ LinguaAI/
 |   |── main.py
 │   └── models.py
 |
-├── requirements.txt
+├── pyproject.toml
+├── uv.lock
+├── .python-version
 ├── .gitignore
 └── .env
 ```
@@ -101,24 +104,10 @@ git clone https://github.com/AliMahdavii/LinguaAI.git
 cd LinguaAI
 ```
 
-Create a virtual environment:
+Install [UV](https://docs.astral.sh/uv/getting-started/installation/), then sync the locked dependencies:
 
 ```bash
-python -m venv venv
-```
-
-Activate it:
-
-**Windows:**
-
-```bash
-venv\Scripts\activate
-```
-
-Install dependencies:
-
-```bash
-pip install -r requirements.txt
+uv sync --locked
 ```
 
 Create a `.env` file:
@@ -131,7 +120,7 @@ GEMINI_API_KEY=your_gemini_api_key
 Run the bot:
 
 ```bash
-python main.py
+uv run --locked python -m src.main
 ```
 
 ---
